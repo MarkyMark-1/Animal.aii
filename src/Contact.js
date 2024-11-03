@@ -22,7 +22,7 @@ function Contact() {
       <button onClick={handleButtonClick} className="contact-button">
         {showCollaborators ? 'Hide Collaborators' : 'Show Collaborators'}
       </button>
-
+    <div className="contact-page-collaborators">
       {showCollaborators && (
         <div className="collaborators-list">
           {collaborators.map((collaborator, index) => (
@@ -40,6 +40,7 @@ function Contact() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
