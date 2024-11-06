@@ -1,62 +1,53 @@
-import numpy as np  # linear algebra
-import pandas as pd  # data processing, CSV file I/O (e.g., pd.read_csv)
+import numpy as np
+import pandas as pd  
 import os
 from transformers import pipeline
 import wikipediaapi
 
-# Initialize Wikipedia API with User-Agent and English language
 wiki = wikipediaapi.Wikipedia(user_agent='HackTX-AnimalAI (kathiana119@gmail.com)', language='en')
-# Initialize the question-answering pipeline
 nlp = pipeline('question-answering', model='deepset/roberta-base-squad2')
 
-
 def extract_relevant_text(page, question):
-    # Keywords related to common question topics
     keywords = ['physical characteristics', 'description', 'diet', 'mannerisms', 'appearance', 'eat', 'lifespan']
-    question_keywords = set(question.lower().split())  # Extract keywords from the question
+    question_keywords = set(question.lower().split())
 
-    # Initialize an empty string to collect relevant text
-    relevant = ""
+    relevant_text = ""
 
-    # Loop through sections and check if any keyword matches section title
     for section in page.sections:
         if any(keyword in section.title.lower() for keyword in keywords) or \
-                any(keyword in section.title.lower() for keyword in question_keywords):
-            relevant += section.text
+           any(keyword in section.title.lower() for keyword in question_keywords):
+            relevant_text += section.text
 
-    # If no relevant sections were found, use the page summary as a fallback
-    if not relevant:
-        relevant = page.summary
+    if not relevant_text:
+        relevant_text = page.summary
 
-    return relevant
+    return relevant_text
 
-
-# Function to retrieve content from Wikipedia and answer the user's question
 def answer_question(topic, question):
-    # Fetch the Wikipedia page for the given topic
     page = wiki.page(topic)
 
-    # Check if the page exists
-    if page.exists():
-        wiki_text = extract_relevant_text(page, question)
-    else:
+    if not page.exists():
         return "Page not found for the given topic."
+    
+    wiki_text = extract_relevant_text(page, question)
 
-    # Define the question and context for the QA pipeline
-    questions = {
+    max_token_length = 512
+    if len(wiki_text.split()) > max_token_length:
+        wiki_text = ' '.join(wiki_text.split()[:max_token_length])
+
+    qa_input = {
         'question': question,
         'context': wiki_text
     }
 
-    # Run the question-answering pipeline
-    answer = nlp(questions)
-    return answer['answer']
+    try:
+        answer = nlp(qa_input)
+        return answer['answer']
+    except Exception as e:
+        return f"An error occurred while answering the question: {str(e)}"
 
-
-# Get the topic and question from the user
 topic = input("Enter the topic you want information on: ")
 question = input("Enter your question: ")
 
-# Get and print the answer
 response = answer_question(topic, question)
 print("Answer:", response)
